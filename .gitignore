@@ -1,0 +1,15 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# pytest cache
+.pytest_cache/
+
+# virtual environments
+venv/
+.venv/
+
+# OS junk
+.DS_Store
+Thumbs.db
