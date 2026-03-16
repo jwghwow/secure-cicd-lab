@@ -8,6 +8,10 @@ on:
     branches:
       - main
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: jwghwow/secure-cicd-lab
+
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -63,20 +67,46 @@ jobs:
       - name: Run dependency vulnerability scan
         run: python -m pip_audit
 
-  docker-build:
+  docker-publish:
     runs-on: ubuntu-latest
     needs: [tests, security]
+    if: github.ref == 'refs/heads/main'
+
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Build Docker image
-        run: docker build -t secure-cicd-lab:latest .
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=sha
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   deploy:
     runs-on: ubuntu-latest
-    needs: [tests, security, docker-build]
+    needs: [tests, security, docker-publish]
     if: github.ref == 'refs/heads/main'
 
     steps:
