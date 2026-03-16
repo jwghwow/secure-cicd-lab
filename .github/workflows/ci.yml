@@ -62,3 +62,25 @@ jobs:
 
       - name: Run dependency vulnerability scan
         run: python -m pip_audit
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [tests, security]
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Create deployment package
+        run: |
+          mkdir -p deploy
+          cp -r app deploy/
+          cp requirements.txt deploy/
+          cp README.md deploy/
+
+      - name: Upload deployment artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: secure-cicd-lab-package
+          path: deploy/
